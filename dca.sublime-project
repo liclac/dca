@@ -1,0 +1,10 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+			"folder_exclude_patterns": ["dca/bin", "dca/lib", "CMakeFiles"],
+			"file_exclude_patterns": ["cmake_install.cmake", "Makefile"]
+		}
+	]
+}
