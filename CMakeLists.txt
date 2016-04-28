@@ -12,3 +12,13 @@ set(CMAKE_C_STANDARD 11)
 # Include headers from /include, build sources from /src
 include_directories(include)
 add_subdirectory(src)
+
+# Make missing documentation a compiler warning (if Doxygen is installed)
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+    add_custom_target(docs ALL
+        COMMAND ${DOXYGEN_EXECUTABLE} VERBATIM
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        DEPENDS dcalib dca
+    )
+endif()

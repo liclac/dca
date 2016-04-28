@@ -1,3 +1,4 @@
+/// \file
 #ifndef DCA_DCA_H
 #define DCA_DCA_H
 
@@ -12,7 +13,7 @@ const static uint8_t DCA_VERSION = 0;
  * A DCA file.
  */
 typedef struct {
-	uint8_t version;
+	uint8_t version;	///< DCA version.
 } dca_t;
 
 /**
