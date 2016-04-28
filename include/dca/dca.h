@@ -6,7 +6,7 @@
 /**
  * Latest DCA version the library supports.
  */
-const static uint8_t DCA_VERSION = 1;
+const static uint8_t DCA_VERSION = 0;
 
 /**
  * A DCA file.
