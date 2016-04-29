@@ -47,7 +47,7 @@ int parse_args(config_t *config, int argc, char **argv) {
 
 				int val = atoi(argv[++i]);
 				if (val == 0) {
-					return ERR_ARG_UNKNOWN;
+					return ERR_ARG_INVALID;
 				}
 				config->bitrate = val;
 			} else if (strcmp(arg, "-ac") == 0) {
@@ -57,7 +57,7 @@ int parse_args(config_t *config, int argc, char **argv) {
 
 				int val = atoi(argv[++i]);
 				if (val == 0) {
-					return ERR_ARG_UNKNOWN;
+					return ERR_ARG_INVALID;
 				}
 				config->channels = val;
 			} else if (strcmp(arg, "-ar") == 0) {
@@ -67,7 +67,7 @@ int parse_args(config_t *config, int argc, char **argv) {
 
 				int val = atoi(argv[++i]);
 				if (val == 0) {
-					return ERR_ARG_UNKNOWN;
+					return ERR_ARG_INVALID;
 				}
 				config->sample_rate = val;
 			} else if (strcmp(arg, "-as") == 0) {
@@ -77,7 +77,7 @@ int parse_args(config_t *config, int argc, char **argv) {
 
 				int val = atoi(argv[++i]);
 				if (val == 0) {
-					return ERR_ARG_UNKNOWN;
+					return ERR_ARG_INVALID;
 				}
 				config->frame_size = val;
 			} else {
