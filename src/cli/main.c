@@ -24,16 +24,16 @@ int main(int argc, char **argv) {
 }
 
 void print_usage(const char *pname) {
-	printf("Usage: %s [flags] input\n", pname);
-	printf("Flags:\n");
-	printf("    -aa (audio|voip|lowdelay) [default: audio]\n");
-	printf("        OPUS application\n");
-	printf("    -ab ... [default: 64]\n");
-	printf("        Audio bitrate, in kb/s\n");
-	printf("    -ac ... [default: 2]\n");
-	printf("        Audio channels\n");
-	printf("    -ar ... [default: 48000]\n");
-	printf("        Audio sample rate\n");
-	printf("    -as ... [default: 960]\n");
-	printf("        Frame size, can be 960 (20ms), 1920 (40ms) or 2880 (60ms)\n");
+	fprintf(stderr, "Usage: %s [flags] input\n", pname);
+	fprintf(stderr, "Flags:\n");
+	fprintf(stderr, "    -aa (audio|voip|lowdelay) [default: audio]\n");
+	fprintf(stderr, "        OPUS application\n");
+	fprintf(stderr, "    -ab ... [default: 64]\n");
+	fprintf(stderr, "        Audio bitrate, in kb/s\n");
+	fprintf(stderr, "    -ac ... [default: 2]\n");
+	fprintf(stderr, "        Audio channels\n");
+	fprintf(stderr, "    -ar ... [default: 48000]\n");
+	fprintf(stderr, "        Audio sample rate\n");
+	fprintf(stderr, "    -as ... [default: 960]\n");
+	fprintf(stderr, "        Frame size, can be 960 (20ms), 1920 (40ms) or 2880 (60ms)\n");
 }
