@@ -33,6 +33,13 @@ void print_usage(const char *pname) {
 	fprintf(stderr, "        Frame size, can be 960 (20ms), 1920 (40ms) or 2880 (60ms)\n");
 }
 
+/**
+ * Makes an output context.
+ *
+ * @param  config  Program configuration
+ * @param  out_ctx Populated with a context on success
+ * @return         0 on success
+ */
 int make_output_context(config_t *config, AVCodecContext **out_ctx) {
 	int err = 0;
 
