@@ -15,9 +15,9 @@ int main(int argc, char **argv) {
 		print_usage(argv[0]);
 		return 1;
 	}
-	
+
 	printf("OPUS Mode: %d\n", config.opus_mode);
-	
+
 	dca_t *dca = dca_new(DCA_VERSION);
 	printf("DCA version: %d\n", dca_version(dca));
 	dca_free(dca);

@@ -6,7 +6,7 @@
  */
 typedef struct {
 	const char *infile;		///< Input filename
-	
+
 	int opus_mode;			///< OPUS mode/application
 	int bitrate;			///< Audio bitrate
 	int channels;			///< Audio channels
@@ -27,7 +27,7 @@ void config_defaults(config_t *config);
 
 /**
  * Parses a list of commandline arguments.
- * 
+ *
  * @param  argc Number of arguments
  * @param  argv Arguments
  * @return      0 on success, anything else on failure

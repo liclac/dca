@@ -14,23 +14,23 @@ void config_defaults(config_t *config) {
 int parse_args(config_t *config, int argc, char **argv) {
 	// Count the number of encountered positional arguments
 	int positionals = 0;
-	
+
 	for (int i = 1; i < argc; i++) {
 		char *arg = argv[i];
 		size_t arglen = strlen(arg);
-		
+
 		// You never know...
 		if (arglen == 0) {
 			continue;
 		}
-		
+
 		if (arg[0] == '-' && arglen != 1) {
 			if (strcmp(arg, "-aa") == 0) {
 				if (i == argc-2) {
 					return ERR_ARG_NO_VALUE;
 				}
 				char *val = argv[++i];
-				
+
 				if (strcmp(val, "voip") == 0) {
 					config->opus_mode = OPUS_APPLICATION_VOIP;
 				} else if (strcmp(val, "audio") == 0) {
@@ -44,7 +44,7 @@ int parse_args(config_t *config, int argc, char **argv) {
 				if (i == argc-2) {
 					return ERR_ARG_NO_VALUE;
 				}
-				
+
 				int val = atoi(argv[++i]);
 				if (val == 0) {
 					return ERR_ARG_UNKNOWN;
@@ -54,7 +54,7 @@ int parse_args(config_t *config, int argc, char **argv) {
 				if (i == argc-2) {
 					return ERR_ARG_NO_VALUE;
 				}
-				
+
 				int val = atoi(argv[++i]);
 				if (val == 0) {
 					return ERR_ARG_UNKNOWN;
@@ -64,7 +64,7 @@ int parse_args(config_t *config, int argc, char **argv) {
 				if (i == argc-2) {
 					return ERR_ARG_NO_VALUE;
 				}
-				
+
 				int val = atoi(argv[++i]);
 				if (val == 0) {
 					return ERR_ARG_UNKNOWN;
@@ -74,7 +74,7 @@ int parse_args(config_t *config, int argc, char **argv) {
 				if (i == argc-2) {
 					return ERR_ARG_NO_VALUE;
 				}
-				
+
 				int val = atoi(argv[++i]);
 				if (val == 0) {
 					return ERR_ARG_UNKNOWN;
@@ -92,6 +92,6 @@ int parse_args(config_t *config, int argc, char **argv) {
 			++positionals;
 		}
 	}
-	
+
 	return 0;
 }
