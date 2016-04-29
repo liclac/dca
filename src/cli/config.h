@@ -8,9 +8,9 @@ typedef struct {
 	const char *infile;		///< Input filename
 
 	int opus_mode;			///< OPUS mode/application
-	int bitrate;			///< Audio bitrate
-	int channels;			///< Audio channels
+	int bit_rate;			///< Audio bitrate (in kb/s!)
 	int sample_rate;		///< Audio sample rate
+	int channels;			///< Audio channels
 	int frame_size;			///< Audio frame size
 } config_t;
 
