@@ -1,6 +1,7 @@
 #include "config.h"
 #include <dca/dca.h>
 #include <libavformat/avformat.h>
+#include <opus/opus.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -103,6 +104,13 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	// Also make an Opus encoder
+	OpusEncoder *opus = malloc(opus_encoder_get_size(config->channels));
+	if ((err = opus_encoder_init(opus, config->sample_rate, config->channels, config->opus_mode)) != OPUS_OK) {
+		fprintf(stderr, "Couldn't init OPUS: %s\n", opus_strerror(err));
+		return err;
+	}
+
 	// Fancypants encoding loop
 	AVPacket pkt;
 	AVFrame *frame = av_frame_alloc();
@@ -137,8 +145,21 @@ int main(int argc, char **argv) {
 				break;
 			}
 
+			av_frame_unref(frame);
+
 			if (got_pkt) {
-				fwrite(pkt.data, 1, pkt.size, stdout);
+				unsigned char data[1024*1024];
+				int16_t len;
+				if ((len = opus_encode(opus, (opus_int16*)(pkt.data), config->frame_size, data, sizeof(data))) < 0) {
+					fprintf(stderr, "Couldn't encode OPUS: %s\n", opus_strerror(len));
+					av_packet_unref(&pkt);
+					break;
+				}
+
+				fwrite(&len, 1, sizeof(len), stdout);
+				fwrite(data, 1, len, stdout);
+
+				av_packet_unref(&pkt);
 			}
 		}
 	}
