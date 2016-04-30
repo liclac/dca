@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 	// Make an encoder context for this codec, and set it to the configured parameters
 	AVCodecContext *octx = avcodec_alloc_context3(ocodec);
 	octx->sample_fmt = AV_SAMPLE_FMT_S16;
-	octx->bit_rate = config->bit_rate * 1000;
+	octx->bit_rate = config->bit_rate;
 	octx->sample_rate = config->sample_rate;
 	octx->channel_layout = av_get_default_channel_layout(config->channels);
 
