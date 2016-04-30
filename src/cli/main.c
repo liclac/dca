@@ -140,19 +140,16 @@ int main(int argc, char **argv) {
 		av_packet_unref(&pkt);
 
 		if (got_frame) {
-			int data_size = av_samples_get_buffer_size(NULL, ctx->channels, frame->nb_samples, ctx->sample_fmt, 1);
-			fwrite(frame->data[0], 1, data_size, stdout);
+			int got_pkt;
+			if ((err = avcodec_encode_audio2(octx, &pkt, frame, &got_pkt)) < 0) {
+				fprintf(stderr, "Couldn't encode audio: %s\n", get_av_err_str(err));
+				av_frame_unref(frame);
+				break;
+			}
 
-			// int got_pkt;
-			// if ((err = avcodec_encode_audio2(octx, &pkt, frame, &got_pkt)) < 0) {
-			// 	fprintf(stderr, "Couldn't encode audio: %s\n", get_av_err_str(err));
-			// 	av_frame_unref(frame);
-			// 	break;
-			// }
-
-			// if (got_pkt) {
-
-			// }
+			if (got_pkt) {
+				fwrite(pkt.data, 1, pkt.size, stdout);
+			}
 		}
 	}
 
