@@ -6,5 +6,17 @@
 			"folder_exclude_patterns": ["dca/bin", "dca/lib", "CMakeFiles"],
 			"file_exclude_patterns": ["cmake_install.cmake", "Makefile"]
 		}
-	]
+	],
+	"SublimeLinter":
+	{
+		"linters":
+		{
+			"clang": {
+				"extra_flags": "-Wall",
+				"include_dirs": [
+					"${project_folder}/include",
+				]
+			}
+		}
+	},
 }
