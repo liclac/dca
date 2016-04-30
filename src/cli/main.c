@@ -110,6 +110,7 @@ int main(int argc, char **argv) {
 	}
 
 	av_frame_free(&frame);
+	avformat_close_input(&fctx);
 
 	return 0;
 }
