@@ -33,6 +33,37 @@ void print_usage(const char *pname) {
 	fprintf(stderr, "        Frame size, can be 960 (20ms), 1920 (40ms) or 2880 (60ms)\n");
 }
 
+/**
+ * Makes an output context.
+ *
+ * @param  config  Program configuration
+ * @param  out_ctx Populated with a context on success
+ * @return         0 on success
+ */
+int make_output_context(config_t *config, AVCodecContext **out_ctx) {
+	int err = 0;
+
+	AVCodec *codec = avcodec_find_encoder(AV_CODEC_ID_PCM_S16LE);
+	if (!codec) {
+		fprintf(stderr, "The s16le codec doesn't exist!?\n");
+		return 1;
+	}
+
+	AVCodecContext *ctx = avcodec_alloc_context3(codec);
+	ctx->sample_fmt = AV_SAMPLE_FMT_S16;
+	ctx->bit_rate = config->bit_rate * 1000;
+	ctx->sample_rate = config->sample_rate;
+	ctx->channel_layout = av_get_default_channel_layout(config->channels);
+
+	if ((err = avcodec_open2(ctx, codec, NULL)) < 0) {
+		fprintf(stderr, "Couldn't open codec: %s\n", get_av_err_str(err));
+		return 1;
+	}
+
+	*out_ctx = ctx;
+	return 0;
+}
+
 int main(int argc, char **argv) {
 	int err;
 
@@ -45,6 +76,11 @@ int main(int argc, char **argv) {
 
 	avcodec_register_all();
 	av_register_all();
+
+	AVCodecContext *octx;
+	if (make_output_context(config, &octx)) {
+		return err;
+	}
 
 	AVFormatContext *fctx;
 	if ((err = avformat_open_input(&fctx, config->infile, NULL, NULL)) < 0) {
@@ -106,6 +142,17 @@ int main(int argc, char **argv) {
 		if (got_frame) {
 			int data_size = av_samples_get_buffer_size(NULL, ctx->channels, frame->nb_samples, ctx->sample_fmt, 1);
 			fwrite(frame->data[0], 1, data_size, stdout);
+
+			// int got_pkt;
+			// if ((err = avcodec_encode_audio2(octx, &pkt, frame, &got_pkt)) < 0) {
+			// 	fprintf(stderr, "Couldn't encode audio: %s\n", get_av_err_str(err));
+			// 	av_frame_unref(frame);
+			// 	break;
+			// }
+
+			// if (got_pkt) {
+
+			// }
 		}
 	}
 
