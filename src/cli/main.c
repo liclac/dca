@@ -36,6 +36,7 @@ void print_usage(const char *pname) {
 int main(int argc, char **argv) {
 	int err;
 
+	// Parse commandline flags! This should probably be made less home-cooked...
 	config_t *config = malloc(sizeof(config_t));
 	config_defaults(config);
 	if ((err = parse_args(config, argc, argv) || config->infile == NULL)) {
@@ -43,9 +44,11 @@ int main(int argc, char **argv) {
 		return err;
 	}
 
+	// Load every imaginable container format and codec
 	avcodec_register_all();
 	av_register_all();
 
+	// Open the input file, and just kinda... stare at it, to figure out what it is
 	AVFormatContext *fctx;
 	if ((err = avformat_open_input(&fctx, config->infile, NULL, NULL)) < 0) {
 		fprintf(stderr, "Couldn't open input: %s\n", get_av_err_str(err));
@@ -57,6 +60,7 @@ int main(int argc, char **argv) {
 		return err;
 	}
 
+	// Find an audio stream (we may have been given a video file) and the codec for good measure
 	AVCodec *codec;
 	int stream_id = av_find_best_stream(fctx, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0);
 	if (stream_id == AVERROR_STREAM_NOT_FOUND) {
@@ -70,20 +74,24 @@ int main(int argc, char **argv) {
 		return AVERROR_DECODER_NOT_FOUND;
 	}
 	AVStream *stream = fctx->streams[stream_id];
-	AVCodecContext *ctx = stream->codec;
 
+	// Grab a decoder for that codec, also we need to explicitly open it
+	AVCodecContext *ctx = stream->codec;
 	if ((err = avcodec_open2(ctx, codec, NULL)) < 0) {
 		fprintf(stderr, "Can't open codec: %s\n", get_av_err_str(err));
 		avformat_close_input(&fctx);
 		return err;
 	}
 
+	// We want to spit out signed 16-bit little endian PCM (s16le), it's not actually possible for
+	// this to not be available, unless someone was to remove av_register_all() above
 	AVCodec *ocodec = avcodec_find_encoder(AV_CODEC_ID_PCM_S16LE);
 	if (!codec) {
 		fprintf(stderr, "The s16le codec doesn't exist!?\n");
 		return 1;
 	}
 
+	// Make an encoder context for this codec, and set it to the configured parameters
 	AVCodecContext *octx = avcodec_alloc_context3(ocodec);
 	octx->sample_fmt = AV_SAMPLE_FMT_S16;
 	octx->bit_rate = config->bit_rate * 1000;
@@ -95,6 +103,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	// Fancypants encoding loop
 	AVPacket pkt;
 	AVFrame *frame = av_frame_alloc();
 	while (1) {
