@@ -46,42 +46,42 @@ int main(int argc, char **argv) {
 	avcodec_register_all();
 	av_register_all();
 
-	AVFormatContext *ifctx;
-	if ((err = avformat_open_input(&ifctx, config->infile, NULL, NULL)) < 0) {
+	AVFormatContext *fctx;
+	if ((err = avformat_open_input(&fctx, config->infile, NULL, NULL)) < 0) {
 		fprintf(stderr, "Couldn't open input: %s\n", get_av_err_str(err));
 		return err;
 	}
-	if ((err = avformat_find_stream_info(ifctx, NULL)) < 0) {
+	if ((err = avformat_find_stream_info(fctx, NULL)) < 0) {
 		fprintf(stderr, "Couldn't find stream info: %s\n", get_av_err_str(err));
-		avformat_close_input(&ifctx);
+		avformat_close_input(&fctx);
 		return err;
 	}
 
-	AVCodec *icodec;
-	int stream_id = av_find_best_stream(ifctx, AVMEDIA_TYPE_AUDIO, -1, -1, &icodec, 0);
+	AVCodec *codec;
+	int stream_id = av_find_best_stream(fctx, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0);
 	if (stream_id == AVERROR_STREAM_NOT_FOUND) {
 		fprintf(stderr, "Couldn't find an audio stream\n");
-		avformat_close_input(&ifctx);
+		avformat_close_input(&fctx);
 		return AVERROR_STREAM_NOT_FOUND;
 	}
 	if (stream_id == AVERROR_DECODER_NOT_FOUND) {
 		fprintf(stderr, "Can't find a decoder for any audio stream\n");
-		avformat_close_input(&ifctx);
+		avformat_close_input(&fctx);
 		return AVERROR_DECODER_NOT_FOUND;
 	}
-	AVStream *stream = ifctx->streams[stream_id];
-	AVCodecContext *ictx = stream->codec;
+	AVStream *stream = fctx->streams[stream_id];
+	AVCodecContext *ctx = stream->codec;
 
-	if ((err = avcodec_open2(ictx, icodec, NULL)) < 0) {
+	if ((err = avcodec_open2(ctx, codec, NULL)) < 0) {
 		fprintf(stderr, "Can't open codec: %s\n", get_av_err_str(err));
-		avformat_close_input(&ifctx);
+		avformat_close_input(&fctx);
 		return err;
 	}
 
 	AVPacket pkt;
 	AVFrame *frame = av_frame_alloc();
 	while (1) {
-		if ((err = av_read_frame(ifctx, &pkt)) < 0) {
+		if ((err = av_read_frame(fctx, &pkt)) < 0) {
 			if (err != AVERROR_EOF) {
 				fprintf(stderr, "%s\n", get_av_err_str(err));
 			}
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
 		}
 
 		int got_frame;
-		if ((err = avcodec_decode_audio4(ictx, frame, &got_frame, &pkt)) < 0) {
+		if ((err = avcodec_decode_audio4(ctx, frame, &got_frame, &pkt)) < 0) {
 			fprintf(stderr, "Couldn't decode audio: %s\n", get_av_err_str(err));
 			av_packet_unref(&pkt);
 			break;
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 		av_packet_unref(&pkt);
 
 		if (got_frame) {
-			int data_size = av_samples_get_buffer_size(NULL, ictx->channels, frame->nb_samples, ictx->sample_fmt, 1);
+			int data_size = av_samples_get_buffer_size(NULL, ctx->channels, frame->nb_samples, ctx->sample_fmt, 1);
 			fwrite(frame->data[0], 1, data_size, stdout);
 		}
 	}
