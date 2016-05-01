@@ -115,8 +115,8 @@ int main(int argc, char **argv) {
 	);
 
 	// Also make an Opus encoder
-	OpusEncoder *opus = malloc(opus_encoder_get_size(config->channels));
-	if ((err = opus_encoder_init(opus, config->sample_rate, config->channels, config->opus_mode)) != OPUS_OK) {
+	OpusEncoder *opus = malloc(opus_encoder_get_size(octx->channels));
+	if ((err = opus_encoder_init(opus, octx->sample_rate, octx->channels, config->opus_mode)) != OPUS_OK) {
 		fprintf(stderr, "Couldn't init OPUS: %s\n", opus_strerror(err));
 		return err;
 	}
