@@ -121,10 +121,14 @@ int main(int argc, char **argv) {
 		return err;
 	}
 
+	opus_encoder_ctl(opus, OPUS_SET_BITRATE(config->bit_rate));
+
 	// Fancypants encoding loop
 	AVPacket pkt;
 	AVFrame *frame = av_frame_alloc();
 	AVFrame *oframe = av_frame_alloc();
+	size_t buf_len = config->frame_size * octx->channels * sizeof(opus_int16);
+	void *buf = malloc(buf_len);
 	while (1) {
 		if ((err = av_read_frame(fctx, &pkt)) < 0) {
 			if (err != AVERROR_EOF) {
@@ -172,24 +176,26 @@ int main(int argc, char **argv) {
 			av_frame_unref(oframe);
 
 			if (got_pkt) {
-				// unsigned char data[1024*1024];
-				// int16_t len;
-				// if ((len = opus_encode(opus, (opus_int16*)(pkt.data), config->frame_size, data, sizeof(data))) < 0) {
-				// 	fprintf(stderr, "Couldn't encode OPUS: %s\n", opus_strerror(len));
-				// 	av_packet_unref(&pkt);
-				// 	break;
-				// }
+				// Dump PCM frames instead, for debugging
+				// fwrite(pkt.data, 1, pkt.size, stdout);
 
-				// fwrite(&len, 1, sizeof(len), stdout);
-				// fwrite(data, 1, len, stdout);
+				int16_t len;
+				if ((len = opus_encode(opus, (opus_int16*)(pkt.data), config->frame_size, buf, buf_len)) < 0) {
+					err = len;
+					fprintf(stderr, "Couldn't encode OPUS: %s\n", opus_strerror(err));
+					av_packet_unref(&pkt);
+					break;
+				}
 
-				fwrite(pkt.data, 1, pkt.size, stdout);
+				fwrite(&len, 1, sizeof(len), stdout);
+				fwrite(buf, 1, len, stdout);
 
 				av_packet_unref(&pkt);
 			}
 		}
 	}
 
+	free(buf);
 	av_frame_free(&frame);
 	avformat_close_input(&fctx);
 
