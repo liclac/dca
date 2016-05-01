@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 	av_register_all();
 
 	// Open the input file, and just kinda... stare at it, to figure out what it is
-	AVFormatContext *fctx;
+	AVFormatContext *fctx = NULL;
 	if ((err = avformat_open_input(&fctx, config->infile, NULL, NULL)) < 0) {
 		fprintf(stderr, "Couldn't open input: %s\n", get_av_err_str(err));
 		return err;
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
 	}
 
 	// Find an audio stream (we may have been given a video file) and the codec for good measure
-	AVCodec *codec;
+	AVCodec *codec = NULL;
 	int stream_id = av_find_best_stream(fctx, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0);
 	if (stream_id == AVERROR_STREAM_NOT_FOUND) {
 		fprintf(stderr, "Couldn't find an audio stream\n");
