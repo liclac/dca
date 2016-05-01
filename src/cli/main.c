@@ -1,6 +1,7 @@
 #include "config.h"
 #include <dca/dca.h>
 #include <libavformat/avformat.h>
+#include <libswresample/swresample.h>
 #include <opus/opus.h>
 #include <string.h>
 #include <stdio.h>
@@ -84,6 +85,8 @@ int main(int argc, char **argv) {
 		return err;
 	}
 
+	ctx->channel_layout = av_get_default_channel_layout(ctx->channels);
+
 	// We want to spit out signed 16-bit little endian PCM (s16le), it's not actually possible for
 	// this to not be available, unless someone was to remove av_register_all() above
 	AVCodec *ocodec = avcodec_find_encoder(AV_CODEC_ID_PCM_S16LE);
@@ -104,6 +107,13 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	// The encoder doesn't actually resample anything, huh
+	SwrContext *swr = swr_alloc_set_opts(NULL,
+		octx->channel_layout, octx->sample_fmt, octx->sample_rate,
+		ctx->channel_layout, ctx->sample_fmt, ctx->sample_rate,
+		0, NULL
+	);
+
 	// Also make an Opus encoder
 	OpusEncoder *opus = malloc(opus_encoder_get_size(config->channels));
 	if ((err = opus_encoder_init(opus, config->sample_rate, config->channels, config->opus_mode)) != OPUS_OK) {
@@ -114,6 +124,7 @@ int main(int argc, char **argv) {
 	// Fancypants encoding loop
 	AVPacket pkt;
 	AVFrame *frame = av_frame_alloc();
+	AVFrame *oframe = av_frame_alloc();
 	while (1) {
 		if ((err = av_read_frame(fctx, &pkt)) < 0) {
 			if (err != AVERROR_EOF) {
@@ -138,26 +149,41 @@ int main(int argc, char **argv) {
 		av_packet_unref(&pkt);
 
 		if (got_frame) {
-			int got_pkt;
-			if ((err = avcodec_encode_audio2(octx, &pkt, frame, &got_pkt)) < 0) {
-				fprintf(stderr, "Couldn't encode audio: %s\n", get_av_err_str(err));
+			oframe->channels = octx->channels;
+			oframe->channel_layout = octx->channel_layout;
+			oframe->sample_rate = octx->sample_rate;
+			oframe->format = octx->sample_fmt;
+
+			if ((err = swr_convert_frame(swr, oframe, frame)) < 0) {
+				fprintf(stderr, "Couldn't resample audio: %s\n", get_av_err_str(err));
 				av_frame_unref(frame);
 				break;
 			}
 
 			av_frame_unref(frame);
 
-			if (got_pkt) {
-				unsigned char data[1024*1024];
-				int16_t len;
-				if ((len = opus_encode(opus, (opus_int16*)(pkt.data), config->frame_size, data, sizeof(data))) < 0) {
-					fprintf(stderr, "Couldn't encode OPUS: %s\n", opus_strerror(len));
-					av_packet_unref(&pkt);
-					break;
-				}
+			int got_pkt;
+			if ((err = avcodec_encode_audio2(octx, &pkt, oframe, &got_pkt)) < 0) {
+				fprintf(stderr, "Couldn't encode audio: %s\n", get_av_err_str(err));
+				av_frame_unref(oframe);
+				break;
+			}
 
-				fwrite(&len, 1, sizeof(len), stdout);
-				fwrite(data, 1, len, stdout);
+			av_frame_unref(oframe);
+
+			if (got_pkt) {
+				// unsigned char data[1024*1024];
+				// int16_t len;
+				// if ((len = opus_encode(opus, (opus_int16*)(pkt.data), config->frame_size, data, sizeof(data))) < 0) {
+				// 	fprintf(stderr, "Couldn't encode OPUS: %s\n", opus_strerror(len));
+				// 	av_packet_unref(&pkt);
+				// 	break;
+				// }
+
+				// fwrite(&len, 1, sizeof(len), stdout);
+				// fwrite(data, 1, len, stdout);
+
+				fwrite(pkt.data, 1, pkt.size, stdout);
 
 				av_packet_unref(&pkt);
 			}
