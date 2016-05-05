@@ -79,13 +79,12 @@ int main(int argc, char **argv) {
 
 	// Grab a decoder for that codec, also we need to explicitly open it
 	AVCodecContext *ctx = stream->codec;
+	ctx->channel_layout = av_get_default_channel_layout(ctx->channels);
 	if ((err = avcodec_open2(ctx, codec, NULL)) < 0) {
 		fprintf(stderr, "Can't open codec: %s\n", get_av_err_str(err));
 		avformat_close_input(&fctx);
 		return err;
 	}
-
-	ctx->channel_layout = av_get_default_channel_layout(ctx->channels);
 
 	// We want to spit out signed 16-bit little endian PCM (s16le), it's not actually possible for
 	// this to not be available, unless someone was to remove av_register_all() above
