@@ -5,6 +5,7 @@
 #ifndef DCA_DCA_H
 #define DCA_DCA_H
 
+#include <dca/defaults.h>
 #include <stdint.h>
 
 /**
@@ -17,6 +18,12 @@
  */
 typedef struct {
 	uint8_t version;	///< DCA version.
+
+	int bit_rate;		///< Audio bit rate.
+	int sample_rate;	///< Audio sample rate.
+	int channels;		///< Encoded audio channels.
+	int frame_size;		///< Encoded samples per OPUS frame.
+	int opus_mode;		///< OPUS application.
 } dca_t;
 
 /**
