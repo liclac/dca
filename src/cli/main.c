@@ -2,6 +2,7 @@
 #include <dca/dca.h>
 #include <libavformat/avformat.h>
 #include <libswresample/swresample.h>
+#include <libavutil/audio_fifo.h>
 #include <opus/opus.h>
 #include <string.h>
 #include <stdio.h>
@@ -122,76 +123,99 @@ int main(int argc, char **argv) {
 
 	opus_encoder_ctl(opus, OPUS_SET_BITRATE(config->bit_rate));
 
+	// FIFO sample buffer
+	AVAudioFifo *fifo = av_audio_fifo_alloc(octx->sample_fmt, config->channels, config->frame_size);
+
 	// Fancypants encoding loop
 	AVPacket pkt;
 	AVFrame *frame = av_frame_alloc();
 	AVFrame *oframe = av_frame_alloc();
 	size_t buf_len = config->frame_size * octx->channels * sizeof(opus_int16);
 	void *buf = malloc(buf_len);
+	void *obuf = malloc(buf_len);
 	while (1) {
-		if ((err = av_read_frame(fctx, &pkt)) < 0) {
-			if (err != AVERROR_EOF) {
-				fprintf(stderr, "%s\n", get_av_err_str(err));
-			}
-			av_packet_unref(&pkt);
-			break;
-		}
-
-		if (pkt.stream_index != stream_id) {
-			av_packet_unref(&pkt);
-			continue;
-		}
-
-		int got_frame;
-		if ((err = avcodec_decode_audio4(ctx, frame, &got_frame, &pkt)) < 0) {
-			fprintf(stderr, "Couldn't decode audio: %s\n", get_av_err_str(err));
-			av_packet_unref(&pkt);
-			break;
-		}
-
-		av_packet_unref(&pkt);
-
-		if (got_frame) {
-			oframe->channels = octx->channels;
-			oframe->channel_layout = octx->channel_layout;
-			oframe->sample_rate = octx->sample_rate;
-			oframe->format = octx->sample_fmt;
-
-			if ((err = swr_convert_frame(swr, oframe, frame)) < 0) {
-				fprintf(stderr, "Couldn't resample audio: %s\n", get_av_err_str(err));
-				av_frame_unref(frame);
+		while (av_audio_fifo_size(fifo) < config->frame_size) {
+			if ((err = av_read_frame(fctx, &pkt)) < 0) {
+				if (err != AVERROR_EOF) {
+					fprintf(stderr, "%s\n", get_av_err_str(err));
+				}
+				av_packet_unref(&pkt);
 				break;
 			}
 
-			av_frame_unref(frame);
+			if (pkt.stream_index != stream_id) {
+				av_packet_unref(&pkt);
+				continue;
+			}
 
-			int got_pkt;
-			if ((err = avcodec_encode_audio2(octx, &pkt, oframe, &got_pkt)) < 0) {
-				fprintf(stderr, "Couldn't encode audio: %s\n", get_av_err_str(err));
-				av_frame_unref(oframe);
+			int got_frame;
+			if ((err = avcodec_decode_audio4(ctx, frame, &got_frame, &pkt)) < 0) {
+				fprintf(stderr, "Couldn't decode audio: %s\n", get_av_err_str(err));
+				av_packet_unref(&pkt);
 				break;
 			}
 
-			av_frame_unref(oframe);
+			av_packet_unref(&pkt);
 
-			if (got_pkt) {
-				// Dump PCM frames instead, for debugging
-				// fwrite(pkt.data, 1, pkt.size, stdout);
+			if (got_frame) {
+				oframe->channels = octx->channels;
+				oframe->channel_layout = octx->channel_layout;
+				oframe->sample_rate = octx->sample_rate;
+				oframe->format = octx->sample_fmt;
 
-				int16_t len;
-				if ((len = opus_encode(opus, (opus_int16*)(pkt.data), config->frame_size, buf, buf_len)) < 0) {
-					err = len;
-					fprintf(stderr, "Couldn't encode OPUS: %s\n", opus_strerror(err));
-					av_packet_unref(&pkt);
+				if ((err = swr_convert_frame(swr, oframe, frame)) < 0) {
+					fprintf(stderr, "Couldn't resample audio: %s\n", get_av_err_str(err));
+					av_frame_unref(frame);
 					break;
 				}
 
-				fwrite(&len, 1, sizeof(len), stdout);
-				fwrite(buf, 1, len, stdout);
+				av_frame_unref(frame);
 
-				av_packet_unref(&pkt);
+				int got_pkt;
+				if ((err = avcodec_encode_audio2(octx, &pkt, oframe, &got_pkt)) < 0) {
+					fprintf(stderr, "Couldn't encode audio: %s\n", get_av_err_str(err));
+					av_frame_unref(oframe);
+					break;
+				}
+
+				if (got_pkt) {
+					if ((err = av_audio_fifo_write(fifo, (void**)&pkt.data, oframe->nb_samples)) < 0) {
+						fprintf(stderr, "Couldn't write to fifo: %s\n", get_av_err_str(err));
+						break;
+					}
+					fprintf(stderr, "Wrote %d samples\n", err);
+					av_packet_unref(&pkt);
+				}
+
+				av_frame_unref(oframe);
 			}
 		}
+
+		int samples;
+		if ((samples = av_audio_fifo_read(fifo, &buf, config->frame_size)) <= 0) {
+			if (samples < 0) {
+				err = samples;
+				fprintf(stderr, "Couldn't read from fifo: %s\n", get_av_err_str(err));
+			}
+			break;
+		}
+		fprintf(stderr, "Read %d samples\n", samples);
+
+		// Dump PCM frames instead, for debugging
+		// fwrite(buf, 1, samples*config->channels*sizeof(int16_t), stdout);
+
+		int16_t len;
+		if ((len = opus_encode(opus, (opus_int16*)buf, config->frame_size, obuf, buf_len)) < 0) {
+			err = len;
+			fprintf(stderr, "Couldn't encode OPUS: %s\n", opus_strerror(err));
+			break;
+		}
+		fprintf(stderr, "OPUS Frame: %d\n", len);
+
+		fwrite(&len, 1, sizeof(len), stdout);
+		fwrite(obuf, 1, len, stdout);
+
+		av_packet_unref(&pkt);
 	}
 
 	free(buf);
