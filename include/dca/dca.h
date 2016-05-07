@@ -14,7 +14,7 @@
 #define DCA_VERSION 0
 
 /**
- * A DCA file.
+ * DCA metadata.
  */
 typedef struct {
 	uint8_t version;	///< DCA version.

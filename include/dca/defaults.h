@@ -1,6 +1,6 @@
 /**
  * @file dca/defaults.h
- * Default values for DCA fields.
+ * Default values for dca_t fields.
  */
 #ifndef DCA_DEFAULTS_H
 #define DCA_DEFAULTS_H
