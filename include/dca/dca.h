@@ -1,4 +1,7 @@
-/// \file
+/**
+ * @file dca/dca.h
+ * Main libdca header.
+ */
 #ifndef DCA_DCA_H
 #define DCA_DCA_H
 
