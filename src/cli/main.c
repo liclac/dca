@@ -97,62 +97,9 @@ int main(int argc, char **argv) {
 
 	dca_encoder_t *enc = dca_encoder_new(dca, ctx->sample_fmt, ctx->sample_rate);
 
-	// // We want to spit out signed 16-bit little endian PCM (s16le), it's not actually possible for
-	// // this to not be available, unless someone was to remove av_register_all() above
-	// AVCodec *ocodec = avcodec_find_encoder(AV_CODEC_ID_PCM_S16LE);
-	// if (!codec) {
-	// 	fprintf(stderr, "The s16le codec doesn't exist!?\n");
-	// 	return 1;
-	// }
-
-	// // Make an encoder context for this codec, and set it to the configured parameters
-	// AVCodecContext *octx = avcodec_alloc_context3(ocodec);
-	// octx->sample_fmt = AV_SAMPLE_FMT_S16;
-	// octx->bit_rate = config->bit_rate;
-	// octx->sample_rate = config->sample_rate;
-	// octx->channel_layout = av_get_default_channel_layout(config->channels);
-
-	// if ((err = avcodec_open2(octx, ocodec, NULL)) < 0) {
-	// 	fprintf(stderr, "Couldn't open codec: %s\n", get_av_err_str(err));
-	// 	return 1;
-	// }
-
-	// // The encoder doesn't actually resample anything, huh
-	// SwrContext *swr = swr_alloc_set_opts(NULL,
-	// 	octx->channel_layout, octx->sample_fmt, octx->sample_rate,
-	// 	ctx->channel_layout, ctx->sample_fmt, ctx->sample_rate,
-	// 	0, NULL
-	// );
-
-	// The encoder doesn't actually resample anything, huh
-	// SwrContext *swr = swr_alloc_set_opts(NULL,
-	// 	ctx->channel_layout, AV_SAMPLE_FMT_S16, dca->sample_rate,
-	// 	ctx->channel_layout, ctx->sample_fmt, ctx->sample_rate,
-	// 	0, NULL
-	// );
-	// if ((err = swr_init(swr)) < 0) {
-	// 	fprintf(stderr, "Couldn't init swr: %s\n", get_av_err_str(err));
-	// 	return 1;
-	// }
-
-	// Also make an Opus encoder
-	// OpusEncoder *opus = malloc(opus_encoder_get_size(dca->channels));
-	// if ((err = opus_encoder_init(opus, dca->sample_rate, dca->channels, dca->opus_mode)) != OPUS_OK) {
-	// 	fprintf(stderr, "Couldn't init OPUS: %s\n", opus_strerror(err));
-	// 	return err;
-	// }
-	// opus_encoder_ctl(opus, OPUS_SET_BITRATE(dca->bit_rate));
-
-	// FIFO sample buffer
-	// AVAudioFifo *fifo = av_audio_fifo_alloc(octx->sample_fmt, config->channels, config->frame_size);
-
 	// Fancypants encoding loop
 	AVPacket pkt;
 	AVFrame *frame = av_frame_alloc();
-	// AVFrame *oframe = av_frame_alloc();
-	size_t buf_len = config->frame_size * dca->channels * sizeof(opus_int16);
-	void *buf = malloc(buf_len);
-	// void *obuf = malloc(buf_len);
 	while (1) {
 		// while (av_audio_fifo_size(fifo) < config->frame_size) {
 		int stop = 0;
