@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
 			av_packet_unref(&pkt);
 
 			if (got_frame) {
-				if ((dca_encoder_feed(enc, frame->extended_data[0], frame->nb_samples)) < 0) {
+				if ((dca_encoder_feed_frame(enc, frame)) < 0) {
 					fprintf(stderr, "Couldn't feed encoder: %s\n", get_av_err_str(err));
 					stop = 1;
 					av_frame_unref(frame);

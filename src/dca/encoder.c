@@ -54,6 +54,10 @@ int dca_encoder_feed(dca_encoder_t *enc, void *samples, int count) {
 	return converted;
 }
 
+int dca_encoder_feed_frame(dca_encoder_t *enc, AVFrame *frame) {
+	return dca_encoder_feed(enc, frame->extended_data[0], frame->nb_samples);
+}
+
 void dca_encoder_reserve_samples(dca_encoder_t *enc, int count) {
 	size_t new_size = sizeof(int16_t) * enc->dca->channels * count;
 	if (new_size > enc->tmp_buf_size) {
