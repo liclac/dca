@@ -1,3 +1,9 @@
+/**
+ * @file dca/encoder.h
+ *
+ * Convenient wrappers around ffmpeg and libopus for converting samples into DCA-compatible OPUS
+ * frames. You can use a dca_source_t as a convenient way of reading samples from an input source.
+ */
 #ifndef DCA_ENCODER_H
 #define DCA_ENCODER_H
 
