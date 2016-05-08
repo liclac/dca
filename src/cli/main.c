@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
 	// AVFrame *oframe = av_frame_alloc();
 	size_t buf_len = config->frame_size * dca->channels * sizeof(opus_int16);
 	void *buf = malloc(buf_len);
-	void *obuf = malloc(buf_len);
+	// void *obuf = malloc(buf_len);
 	while (1) {
 		// while (av_audio_fifo_size(fifo) < config->frame_size) {
 		int stop = 0;
@@ -214,7 +214,8 @@ int main(int argc, char **argv) {
 		// fwrite(buf, 1, samples*dca->channels*sizeof(int16_t), stdout);
 
 		int16_t len;
-		if ((len = opus_encode(opus, (opus_int16*)buf, config->frame_size, obuf, buf_len)) < 0) {
+		unsigned char obuf[4000];
+		if ((len = opus_encode(opus, (opus_int16*)buf, config->frame_size, obuf, sizeof(obuf))) < 0) {
 			err = len;
 			fprintf(stderr, "Couldn't encode OPUS: %s\n", opus_strerror(err));
 			break;
