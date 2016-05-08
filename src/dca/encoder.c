@@ -31,6 +31,10 @@ dca_encoder_t* dca_encoder_new(dca_t *dca, enum AVSampleFormat in_sample_fmt, in
 	return enc;
 }
 
+dca_encoder_t *dca_encoder_new_source(dca_t *dca, dca_source_t *src) {
+	return dca_encoder_new(dca, src->ctx->sample_fmt, src->ctx->sample_rate);
+}
+
 void dca_encoder_free(dca_encoder_t *enc) {
 	if (enc->tmp_buf != NULL) {
 		free(enc->tmp_buf);

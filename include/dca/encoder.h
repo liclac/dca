@@ -8,6 +8,7 @@
 #define DCA_ENCODER_H
 
 #include <dca/dca.h>
+#include <dca/source.h>
 #include <opus/opus.h>
 #include <libavutil/samplefmt.h>
 #include <libswresample/swresample.h>
@@ -35,9 +36,22 @@ typedef struct {
  * The caller takes ownership of it, and must free it using dca_encoder_free().
  *
  * @param  dca DCA structure for metadata.
- * @return     A newly allocated encoder.
+ * @return     A newly allocated encoder, NULL on error.
  */
 dca_encoder_t* dca_encoder_new(dca_t *dca, enum AVSampleFormat in_sample_fmt, int in_sample_rate);
+
+/**
+ * Creates a new DCA encoder using params from a dca_source_t.
+ *
+ * The same rules about memory management as dca_encoder_new() applies.
+ *
+ * The source must have been opened with dca_source_open(), or this call will fail.
+ *
+ * @param  dca DCA structure for metadata.
+ * @param  src Source.
+ * @return     A newly allocated encoder, NULL on error.
+ */
+dca_encoder_t *dca_encoder_new_source(dca_t *dca, dca_source_t *src);
 
 /**
  * Frees a DCA encoder.

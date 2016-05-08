@@ -1,6 +1,7 @@
 #include "config.h"
 #include <dca/dca.h>
 #include <dca/encoder.h>
+#include <dca/source.h>
 #include <libavformat/avformat.h>
 #include <libswresample/swresample.h>
 #include <libavutil/audio_fifo.h>
@@ -52,42 +53,6 @@ int main(int argc, char **argv) {
 	avcodec_register_all();
 	av_register_all();
 
-	// Open the input file, and just kinda... stare at it, to figure out what it is
-	AVFormatContext *fctx = NULL;
-	if ((err = avformat_open_input(&fctx, config->infile, NULL, NULL)) < 0) {
-		fprintf(stderr, "Couldn't open input: %s\n", get_av_err_str(err));
-		return err;
-	}
-	if ((err = avformat_find_stream_info(fctx, NULL)) < 0) {
-		fprintf(stderr, "Couldn't find stream info: %s\n", get_av_err_str(err));
-		avformat_close_input(&fctx);
-		return err;
-	}
-
-	// Find an audio stream (we may have been given a video file) and the codec for good measure
-	AVCodec *codec = NULL;
-	int stream_id = av_find_best_stream(fctx, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0);
-	if (stream_id == AVERROR_STREAM_NOT_FOUND) {
-		fprintf(stderr, "Couldn't find an audio stream\n");
-		avformat_close_input(&fctx);
-		return AVERROR_STREAM_NOT_FOUND;
-	}
-	if (stream_id == AVERROR_DECODER_NOT_FOUND) {
-		fprintf(stderr, "Can't find a decoder for any audio stream\n");
-		avformat_close_input(&fctx);
-		return AVERROR_DECODER_NOT_FOUND;
-	}
-	AVStream *stream = fctx->streams[stream_id];
-
-	// Grab a decoder for that codec, also we need to explicitly open it
-	AVCodecContext *ctx = stream->codec;
-	ctx->channel_layout = av_get_default_channel_layout(ctx->channels);
-	if ((err = avcodec_open2(ctx, codec, NULL)) < 0) {
-		fprintf(stderr, "Can't open codec: %s\n", get_av_err_str(err));
-		avformat_close_input(&fctx);
-		return err;
-	}
-
 	dca_t *dca = dca_new(0);
 	dca->bit_rate = config->bit_rate;
 	dca->sample_rate = config->sample_rate;
@@ -95,48 +60,35 @@ int main(int argc, char **argv) {
 	dca->frame_size = config->frame_size;
 	dca->opus_mode = config->opus_mode;
 
-	dca_encoder_t *enc = dca_encoder_new(dca, ctx->sample_fmt, ctx->sample_rate);
+	dca_source_t *src = dca_source_new(dca);
+	if ((err = dca_source_open(src, config->infile)) < 0) {
+		fprintf(stderr, "Couldn't open input: %s\n", get_av_err_str(err));
+		return err;
+	}
+
+	dca_encoder_t *enc = dca_encoder_new_source(dca, src);
 
 	// Fancypants encoding loop
-	AVPacket pkt;
 	AVFrame *frame = av_frame_alloc();
 	while (1) {
 		int stop = 0;
 		while (dca_encoder_needs_more(enc)) {
-			if ((err = av_read_frame(fctx, &pkt)) < 0) {
+			if ((err = dca_source_read_frame(src, frame)) < 0) {
 				if (err != AVERROR_EOF) {
 					fprintf(stderr, "%s\n", get_av_err_str(err));
 					stop = 1;
 				}
-				av_packet_unref(&pkt);
 				break;
 			}
 
-			if (pkt.stream_index != stream_id) {
-				av_packet_unref(&pkt);
-				continue;
-			}
-
-			int got_frame;
-			if ((err = avcodec_decode_audio4(ctx, frame, &got_frame, &pkt)) < 0) {
-				fprintf(stderr, "Couldn't decode audio: %s\n", get_av_err_str(err));
-				av_packet_unref(&pkt);
+			if ((dca_encoder_feed_frame(enc, frame)) < 0) {
+				fprintf(stderr, "Couldn't feed encoder: %s\n", get_av_err_str(err));
 				stop = 1;
+				av_frame_unref(frame);
 				break;
 			}
 
-			av_packet_unref(&pkt);
-
-			if (got_frame) {
-				if ((dca_encoder_feed_frame(enc, frame)) < 0) {
-					fprintf(stderr, "Couldn't feed encoder: %s\n", get_av_err_str(err));
-					stop = 1;
-					av_frame_unref(frame);
-					break;
-				}
-
-				av_frame_unref(frame);
-			}
+			av_frame_unref(frame);
 		}
 
 		if (stop) {
@@ -162,7 +114,6 @@ int main(int argc, char **argv) {
 	}
 
 	av_frame_free(&frame);
-	avformat_close_input(&fctx);
 
 	return 0;
 }
