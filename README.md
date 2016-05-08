@@ -21,7 +21,7 @@ Feaures
 -------
 
 - [x] Encoding
-- [ ] DCA 0
+- [x] DCA 0
 - [ ] DCA 1
     - [ ] Magic Bytes
     - [ ] Tool Header
