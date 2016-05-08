@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 void config_defaults(config_t *config) {
+	config->infile = NULL;
 	config->opus_mode = OPUS_APPLICATION_AUDIO;
 	config->bit_rate = 64000;
 	config->channels = 2;
