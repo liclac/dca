@@ -1,2 +1,2 @@
-add_library(dcalib dca.c encoder.c source.c)
-set_target_properties(dcalib PROPERTIES OUTPUT_NAME dca)
+add_executable(dca main.c config.c)
+target_link_libraries(dca dcalib avformat avcodec avutil swresample opus)
