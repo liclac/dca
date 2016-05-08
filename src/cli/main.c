@@ -101,7 +101,6 @@ int main(int argc, char **argv) {
 	AVPacket pkt;
 	AVFrame *frame = av_frame_alloc();
 	while (1) {
-		// while (av_audio_fifo_size(fifo) < config->frame_size) {
 		int stop = 0;
 		while (dca_encoder_needs_more(enc)) {
 			if ((err = av_read_frame(fctx, &pkt)) < 0) {
