@@ -44,9 +44,4 @@ dca_t* dca_new(uint8_t version);
  */
 void dca_free(dca_t *dca);
 
-/**
- * Returns a DCA structure's version.
- */
-uint8_t dca_version(dca_t *dca);
-
 #endif

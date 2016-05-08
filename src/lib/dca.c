@@ -15,7 +15,3 @@ dca_t* dca_new(uint8_t version) {
 void dca_free(dca_t *dca) {
 	free(dca);
 }
-
-uint8_t dca_version(dca_t *dca) {
-	return dca->version;
-}
