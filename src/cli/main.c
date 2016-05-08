@@ -162,8 +162,7 @@ int main(int argc, char **argv) {
 		fwrite(obuf, 1, len, stdout);
 	}
 
-	// free(buf);
-	// av_frame_free(&frame);
+	av_frame_free(&frame);
 	avformat_close_input(&fctx);
 
 	return 0;
