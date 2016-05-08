@@ -35,8 +35,10 @@ typedef struct {
  *
  * The caller takes ownership of it, and must free it using dca_encoder_free().
  *
- * @param  dca DCA structure for metadata.
- * @return     A newly allocated encoder, NULL on error.
+ * @param  dca            DCA structure for metadata.
+ * @param  in_sample_fmt  Input sample format.
+ * @param  in_sample_rate Input sample rate.
+ * @return                A newly allocated encoder, NULL on error.
  */
 dca_encoder_t* dca_encoder_new(dca_t *dca, enum AVSampleFormat in_sample_fmt, int in_sample_rate);
 

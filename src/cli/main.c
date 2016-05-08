@@ -53,6 +53,7 @@ int main(int argc, char **argv) {
 	avcodec_register_all();
 	av_register_all();
 
+	// Make a DCA header out of the commandline flags
 	dca_t *dca = dca_new(0);
 	dca->bit_rate = config->bit_rate;
 	dca->sample_rate = config->sample_rate;
@@ -60,15 +61,17 @@ int main(int argc, char **argv) {
 	dca->frame_size = config->frame_size;
 	dca->opus_mode = config->opus_mode;
 
+	// We need an input source, so make one
 	dca_source_t *src = dca_source_new(dca);
 	if ((err = dca_source_open(src, config->infile)) < 0) {
 		fprintf(stderr, "Couldn't open input: %s\n", get_av_err_str(err));
 		return err;
 	}
 
+	// An encoder would be nice too
 	dca_encoder_t *enc = dca_encoder_new_source(dca, src);
 
-	// Fancypants encoding loop
+	// Read frame, buffer samples, convert, ???, profit
 	AVFrame *frame = av_frame_alloc();
 	while (1) {
 		int stop = 0;
@@ -113,7 +116,11 @@ int main(int argc, char **argv) {
 		fwrite(obuf, 1, len, stdout);
 	}
 
+	// Honestly, this is probably unnecessary, but good practice anyways
 	av_frame_free(&frame);
+	dca_encoder_free(enc);
+	dca_source_free(src);
+	dca_free(dca);
 
 	return 0;
 }
