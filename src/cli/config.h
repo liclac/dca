@@ -25,14 +25,20 @@ enum {
 	ERR_ARG_INVALID,		///< There's a value, but it's not valid
 };
 
+/**
+ * Set defaults for config flags.
+ *
+ * @param config Config
+ */
 void config_defaults(config_t *config);
 
 /**
  * Parses a list of commandline arguments.
  *
- * @param  argc Number of arguments
- * @param  argv Arguments
- * @return      0 on success, anything else on failure
+ * @param  config Config
+ * @param  argc   Number of arguments
+ * @param  argv   Arguments
+ * @return        0 on success, anything else on failure
  */
 int parse_args(config_t *config, int argc, char **argv);
 
