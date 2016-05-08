@@ -5,6 +5,7 @@
 
 void config_defaults(config_t *config) {
 	config->infile = NULL;
+	config->outfile = NULL;
 	config->raw = 0;
 	config->opus_mode = OPUS_APPLICATION_AUDIO;
 	config->bit_rate = 64000;
@@ -27,7 +28,17 @@ int parse_args(config_t *config, int argc, char **argv) {
 		}
 
 		if (arg[0] == '-' && arglen != 1) {
-			if (strcmp(arg, "-aa") == 0) {
+			if (strcmp(arg, "-o") == 0) {
+				if (i == argc-2) {
+					return ERR_ARG_NO_VALUE;
+				}
+				config->outfile = argv[++i];
+			} else if (strcmp(arg, "-i") == 0) {
+				if (i == argc-2) {
+					return ERR_ARG_NO_VALUE;
+				}
+				config->infile = argv[++i];
+			} else if (strcmp(arg, "-aa") == 0) {
 				if (i == argc-2) {
 					return ERR_ARG_NO_VALUE;
 				}

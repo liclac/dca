@@ -71,6 +71,13 @@ int main(int argc, char **argv) {
 	// An encoder would be nice too
 	dca_encoder_t *enc = dca_encoder_new_source(dca, src);
 
+	// Turns out some people want output somewhere other than stdout
+	FILE *out = stdout;
+	if (config->outfile != NULL && strcmp(config->outfile, "pipe:1") != 0) {
+		out = fopen(config->outfile, "wb");
+		perror("Couldn't open output file");
+	}
+
 	// Read frame, buffer samples, convert, ???, profit
 	AVFrame *frame = av_frame_alloc();
 	while (1) {
@@ -112,8 +119,8 @@ int main(int argc, char **argv) {
 		}
 
 		fprintf(stderr, "%d samples -> %d byte\n", samples, len);
-		fwrite(&len, 1, sizeof(len), stdout);
-		fwrite(obuf, 1, len, stdout);
+		fwrite(&len, 1, sizeof(len), out);
+		fwrite(obuf, 1, len, out);
 	}
 
 	// Honestly, this is probably unnecessary, but good practice anyways
