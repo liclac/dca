@@ -1,5 +1,6 @@
 #include "config.h"
 #include <dca/dca.h>
+#include <dca/encoder.h>
 #include <libavformat/avformat.h>
 #include <libswresample/swresample.h>
 #include <libavutil/audio_fifo.h>
@@ -87,57 +88,79 @@ int main(int argc, char **argv) {
 		return err;
 	}
 
-	// We want to spit out signed 16-bit little endian PCM (s16le), it's not actually possible for
-	// this to not be available, unless someone was to remove av_register_all() above
-	AVCodec *ocodec = avcodec_find_encoder(AV_CODEC_ID_PCM_S16LE);
-	if (!codec) {
-		fprintf(stderr, "The s16le codec doesn't exist!?\n");
-		return 1;
-	}
+	dca_t *dca = dca_new(0);
+	dca->bit_rate = config->bit_rate;
+	dca->sample_rate = config->sample_rate;
+	dca->channels = config->channels;
+	dca->frame_size = config->frame_size;
+	dca->opus_mode = config->opus_mode;
 
-	// Make an encoder context for this codec, and set it to the configured parameters
-	AVCodecContext *octx = avcodec_alloc_context3(ocodec);
-	octx->sample_fmt = AV_SAMPLE_FMT_S16;
-	octx->bit_rate = config->bit_rate;
-	octx->sample_rate = config->sample_rate;
-	octx->channel_layout = av_get_default_channel_layout(config->channels);
+	dca_encoder_t *enc = dca_encoder_new(dca, ctx->sample_fmt, ctx->sample_rate);
 
-	if ((err = avcodec_open2(octx, ocodec, NULL)) < 0) {
-		fprintf(stderr, "Couldn't open codec: %s\n", get_av_err_str(err));
-		return 1;
-	}
+	// // We want to spit out signed 16-bit little endian PCM (s16le), it's not actually possible for
+	// // this to not be available, unless someone was to remove av_register_all() above
+	// AVCodec *ocodec = avcodec_find_encoder(AV_CODEC_ID_PCM_S16LE);
+	// if (!codec) {
+	// 	fprintf(stderr, "The s16le codec doesn't exist!?\n");
+	// 	return 1;
+	// }
+
+	// // Make an encoder context for this codec, and set it to the configured parameters
+	// AVCodecContext *octx = avcodec_alloc_context3(ocodec);
+	// octx->sample_fmt = AV_SAMPLE_FMT_S16;
+	// octx->bit_rate = config->bit_rate;
+	// octx->sample_rate = config->sample_rate;
+	// octx->channel_layout = av_get_default_channel_layout(config->channels);
+
+	// if ((err = avcodec_open2(octx, ocodec, NULL)) < 0) {
+	// 	fprintf(stderr, "Couldn't open codec: %s\n", get_av_err_str(err));
+	// 	return 1;
+	// }
+
+	// // The encoder doesn't actually resample anything, huh
+	// SwrContext *swr = swr_alloc_set_opts(NULL,
+	// 	octx->channel_layout, octx->sample_fmt, octx->sample_rate,
+	// 	ctx->channel_layout, ctx->sample_fmt, ctx->sample_rate,
+	// 	0, NULL
+	// );
 
 	// The encoder doesn't actually resample anything, huh
-	SwrContext *swr = swr_alloc_set_opts(NULL,
-		octx->channel_layout, octx->sample_fmt, octx->sample_rate,
-		ctx->channel_layout, ctx->sample_fmt, ctx->sample_rate,
-		0, NULL
-	);
+	// SwrContext *swr = swr_alloc_set_opts(NULL,
+	// 	ctx->channel_layout, AV_SAMPLE_FMT_S16, dca->sample_rate,
+	// 	ctx->channel_layout, ctx->sample_fmt, ctx->sample_rate,
+	// 	0, NULL
+	// );
+	// if ((err = swr_init(swr)) < 0) {
+	// 	fprintf(stderr, "Couldn't init swr: %s\n", get_av_err_str(err));
+	// 	return 1;
+	// }
 
 	// Also make an Opus encoder
-	OpusEncoder *opus = malloc(opus_encoder_get_size(octx->channels));
-	if ((err = opus_encoder_init(opus, octx->sample_rate, octx->channels, config->opus_mode)) != OPUS_OK) {
+	OpusEncoder *opus = malloc(opus_encoder_get_size(dca->channels));
+	if ((err = opus_encoder_init(opus, dca->sample_rate, dca->channels, dca->opus_mode)) != OPUS_OK) {
 		fprintf(stderr, "Couldn't init OPUS: %s\n", opus_strerror(err));
 		return err;
 	}
-
-	opus_encoder_ctl(opus, OPUS_SET_BITRATE(config->bit_rate));
+	opus_encoder_ctl(opus, OPUS_SET_BITRATE(dca->bit_rate));
 
 	// FIFO sample buffer
-	AVAudioFifo *fifo = av_audio_fifo_alloc(octx->sample_fmt, config->channels, config->frame_size);
+	// AVAudioFifo *fifo = av_audio_fifo_alloc(octx->sample_fmt, config->channels, config->frame_size);
 
 	// Fancypants encoding loop
 	AVPacket pkt;
 	AVFrame *frame = av_frame_alloc();
-	AVFrame *oframe = av_frame_alloc();
-	size_t buf_len = config->frame_size * octx->channels * sizeof(opus_int16);
+	// AVFrame *oframe = av_frame_alloc();
+	size_t buf_len = config->frame_size * dca->channels * sizeof(opus_int16);
 	void *buf = malloc(buf_len);
 	void *obuf = malloc(buf_len);
 	while (1) {
-		while (av_audio_fifo_size(fifo) < config->frame_size) {
+		// while (av_audio_fifo_size(fifo) < config->frame_size) {
+		int stop = 0;
+		while (dca_encoder_needs_more(enc)) {
 			if ((err = av_read_frame(fctx, &pkt)) < 0) {
 				if (err != AVERROR_EOF) {
 					fprintf(stderr, "%s\n", get_av_err_str(err));
+					stop = 1;
 				}
 				av_packet_unref(&pkt);
 				break;
@@ -152,57 +175,43 @@ int main(int argc, char **argv) {
 			if ((err = avcodec_decode_audio4(ctx, frame, &got_frame, &pkt)) < 0) {
 				fprintf(stderr, "Couldn't decode audio: %s\n", get_av_err_str(err));
 				av_packet_unref(&pkt);
+				stop = 1;
 				break;
 			}
 
 			av_packet_unref(&pkt);
 
 			if (got_frame) {
-				oframe->channels = octx->channels;
-				oframe->channel_layout = octx->channel_layout;
-				oframe->sample_rate = octx->sample_rate;
-				oframe->format = octx->sample_fmt;
-
-				if ((err = swr_convert_frame(swr, oframe, frame)) < 0) {
-					fprintf(stderr, "Couldn't resample audio: %s\n", get_av_err_str(err));
+				if ((dca_encoder_feed(enc, frame->extended_data[0], frame->nb_samples)) < 0) {
+					fprintf(stderr, "Couldn't feed encoder: %s\n", get_av_err_str(err));
+					stop = 1;
 					av_frame_unref(frame);
 					break;
 				}
 
 				av_frame_unref(frame);
-
-				int got_pkt;
-				if ((err = avcodec_encode_audio2(octx, &pkt, oframe, &got_pkt)) < 0) {
-					fprintf(stderr, "Couldn't encode audio: %s\n", get_av_err_str(err));
-					av_frame_unref(oframe);
-					break;
-				}
-
-				if (got_pkt) {
-					if ((err = av_audio_fifo_write(fifo, (void**)&pkt.data, oframe->nb_samples)) < 0) {
-						fprintf(stderr, "Couldn't write to fifo: %s\n", get_av_err_str(err));
-						break;
-					}
-					fprintf(stderr, "Wrote %d samples\n", err);
-					av_packet_unref(&pkt);
-				}
-
-				av_frame_unref(oframe);
 			}
+		}
+
+		if (stop) {
+			break;
 		}
 
 		int samples;
-		if ((samples = av_audio_fifo_read(fifo, &buf, config->frame_size)) <= 0) {
-			if (samples < 0) {
-				err = samples;
-				fprintf(stderr, "Couldn't read from fifo: %s\n", get_av_err_str(err));
-			}
+		if ((samples = av_audio_fifo_read(enc->samples, &buf, dca->frame_size)) < 0) {
+			err = samples;
+			fprintf(stderr, "Couldn't read samples: %s\n", get_av_err_str(err));
 			break;
 		}
+
+		if (samples == 0) {
+			break;
+		}
+
 		fprintf(stderr, "Read %d samples\n", samples);
 
 		// Dump PCM frames instead, for debugging
-		// fwrite(buf, 1, samples*config->channels*sizeof(int16_t), stdout);
+		// fwrite(buf, 1, samples*dca->channels*sizeof(int16_t), stdout);
 
 		int16_t len;
 		if ((len = opus_encode(opus, (opus_int16*)buf, config->frame_size, obuf, buf_len)) < 0) {
@@ -214,12 +223,10 @@ int main(int argc, char **argv) {
 
 		fwrite(&len, 1, sizeof(len), stdout);
 		fwrite(obuf, 1, len, stdout);
-
-		av_packet_unref(&pkt);
 	}
 
-	free(buf);
-	av_frame_free(&frame);
+	// free(buf);
+	// av_frame_free(&frame);
 	avformat_close_input(&fctx);
 
 	return 0;
