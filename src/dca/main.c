@@ -24,8 +24,12 @@ const char* get_av_err_str(const int err) {
  * Prints a usage message to stderr.
  */
 void print_usage(const char *pname) {
-	fprintf(stderr, "Usage: %s [flags] input\n", pname);
+	fprintf(stderr, "Usage: %s [flags] [input] [output]\n", pname);
 	fprintf(stderr, "Flags:\n");
+	fprintf(stderr, "    -i ...\n");
+	fprintf(stderr, "        Input file\n");
+	fprintf(stderr, "    -o ... [default: -]\n");
+	fprintf(stderr, "        Output file, - for stdout\n");
 	fprintf(stderr, "    -aa (audio|voip|lowdelay) [default: audio]\n");
 	fprintf(stderr, "        OPUS application\n");
 	fprintf(stderr, "    -ab ... [default: 64]\n");
