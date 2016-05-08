@@ -42,9 +42,9 @@ int main(int argc, char **argv) {
 	int err;
 
 	// Parse commandline flags! This should probably be made less home-cooked...
-	config_t *config = malloc(sizeof(config_t));
-	config_defaults(config);
-	if ((err = parse_args(config, argc, argv) || config->infile == NULL)) {
+	config_t config;
+	config_defaults(&config);
+	if ((err = parse_args(&config, argc, argv) || config.infile == NULL)) {
 		print_usage(argv[0]);
 		return err;
 	}
@@ -54,16 +54,16 @@ int main(int argc, char **argv) {
 	av_register_all();
 
 	// Make a DCA header out of the commandline flags
-	dca_t *dca = dca_new(config->raw ? 0 : DCA_VERSION);
-	dca->bit_rate = config->bit_rate;
-	dca->sample_rate = config->sample_rate;
-	dca->channels = config->channels;
-	dca->frame_size = config->frame_size;
-	dca->opus_mode = config->opus_mode;
+	dca_t *dca = dca_new(config.raw ? 0 : DCA_VERSION);
+	dca->bit_rate = config.bit_rate;
+	dca->sample_rate = config.sample_rate;
+	dca->channels = config.channels;
+	dca->frame_size = config.frame_size;
+	dca->opus_mode = config.opus_mode;
 
 	// We need an input source, so make one
 	dca_source_t *src = dca_source_new(dca);
-	if ((err = dca_source_open(src, config->infile)) < 0) {
+	if ((err = dca_source_open(src, config.infile)) < 0) {
 		fprintf(stderr, "Couldn't open input: %s\n", get_av_err_str(err));
 		return err;
 	}
@@ -73,8 +73,8 @@ int main(int argc, char **argv) {
 
 	// Turns out some people want output somewhere other than stdout
 	FILE *out = stdout;
-	if (config->outfile != NULL && strcmp(config->outfile, "pipe:1") != 0) {
-		out = fopen(config->outfile, "wb");
+	if (config.outfile != NULL && strcmp(config.outfile, "pipe:1") != 0) {
+		out = fopen(config.outfile, "wb");
 		perror("Couldn't open output file");
 	}
 
