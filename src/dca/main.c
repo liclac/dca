@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 
 	// Turns out some people want output somewhere other than stdout
 	FILE *out = stdout;
-	if (config.outfile != NULL && strcmp(config.outfile, "pipe:1") != 0) {
+	if (config.outfile != NULL && strcmp(config.outfile, "-") != 0 && strcmp(config.outfile, "pipe:1") != 0) {
 		out = fopen(config.outfile, "wb");
 		perror("Couldn't open output file");
 	}
