@@ -5,6 +5,7 @@ dca_source_t* dca_source_new(dca_t *dca) {
 	src->dca = dca;
 	src->fctx = NULL;
 	src->ctx = NULL;
+	src->stream_id = -1;
 
 	return src;
 }
@@ -22,12 +23,11 @@ int dca_source_open(dca_source_t *src, const char *filename) {
 	}
 
 	AVCodec *codec = NULL;
-	int stream_id;
-	if ((stream_id = av_find_best_stream(src->fctx, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0)) < 0) {
-		return stream_id;
+	if ((src->stream_id = av_find_best_stream(src->fctx, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0)) < 0) {
+		return src->stream_id;
 	}
 
-	AVStream *stream = src->fctx->streams[stream_id];
+	AVStream *stream = src->fctx->streams[src->stream_id];
 	src->ctx = stream->codec;
 	src->ctx->channel_layout = av_get_default_channel_layout(src->ctx->channels);
 	if ((err = avcodec_open2(src->ctx, codec, NULL)) < 0) {
