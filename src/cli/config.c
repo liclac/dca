@@ -5,6 +5,7 @@
 
 void config_defaults(config_t *config) {
 	config->infile = NULL;
+	config->raw = 0;
 	config->opus_mode = OPUS_APPLICATION_AUDIO;
 	config->bit_rate = 64000;
 	config->channels = 2;
@@ -81,6 +82,8 @@ int parse_args(config_t *config, int argc, char **argv) {
 					return ERR_ARG_INVALID;
 				}
 				config->frame_size = val;
+			} else if (strcmp(arg, "-raw") == 0) {
+				config->raw = 1;
 			} else {
 				return ERR_ARG_UNKNOWN;
 			}

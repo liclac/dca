@@ -6,6 +6,7 @@
  */
 typedef struct {
 	const char *infile;		///< Input filename
+	int raw;				///< Raw (DCA0) output?
 
 	int opus_mode;			///< OPUS mode/application
 	int bit_rate;			///< Audio bitrate

@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
 	av_register_all();
 
 	// Make a DCA header out of the commandline flags
-	dca_t *dca = dca_new(0);
+	dca_t *dca = dca_new(config->raw ? 0 : DCA_VERSION);
 	dca->bit_rate = config->bit_rate;
 	dca->sample_rate = config->sample_rate;
 	dca->channels = config->channels;
