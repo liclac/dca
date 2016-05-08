@@ -2,6 +2,7 @@
 #define DCA_ENCODER_H
 
 #include <dca/dca.h>
+#include <opus/opus.h>
 #include <libavutil/samplefmt.h>
 #include <libswresample/swresample.h>
 #include <libavutil/audio_fifo.h>
@@ -15,6 +16,7 @@ typedef struct {
 	int in_sample_rate;					///< Input sample rate
 
 	SwrContext *swr;					///< Resampler.
+	OpusEncoder *opus;					///< OPUS Encoder.
 	AVAudioFifo *samples;				///< FIFO sample buffer.
 
 	void *tmp_buf;						///< Temporary buffer.
@@ -68,6 +70,17 @@ int dca_encoder_feed(dca_encoder_t *enc, void *samples, int count);
  * @return       < 0 on error.
  */
 int dca_encoder_feed_frame(dca_encoder_t *enc, AVFrame *frame);
+
+/**
+ * Emits an OPUS frame.
+ *
+ * @param  enc     Encoder.
+ * @param  len     Set to the length of the OPUS frame.
+ * @param  buf     Output buffer.
+ * @param  buf_len Size of the output buffer.
+ * @return         Number of samples consumed, < 0 on error.
+ */
+int dca_encoder_emit(dca_encoder_t *enc, int16_t *len, void *buf, size_t buf_len);
 
 /**
  * Reserves internal buffer space.

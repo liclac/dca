@@ -136,12 +136,12 @@ int main(int argc, char **argv) {
 	// }
 
 	// Also make an Opus encoder
-	OpusEncoder *opus = malloc(opus_encoder_get_size(dca->channels));
-	if ((err = opus_encoder_init(opus, dca->sample_rate, dca->channels, dca->opus_mode)) != OPUS_OK) {
-		fprintf(stderr, "Couldn't init OPUS: %s\n", opus_strerror(err));
-		return err;
-	}
-	opus_encoder_ctl(opus, OPUS_SET_BITRATE(dca->bit_rate));
+	// OpusEncoder *opus = malloc(opus_encoder_get_size(dca->channels));
+	// if ((err = opus_encoder_init(opus, dca->sample_rate, dca->channels, dca->opus_mode)) != OPUS_OK) {
+	// 	fprintf(stderr, "Couldn't init OPUS: %s\n", opus_strerror(err));
+	// 	return err;
+	// }
+	// opus_encoder_ctl(opus, OPUS_SET_BITRATE(dca->bit_rate));
 
 	// FIFO sample buffer
 	// AVAudioFifo *fifo = av_audio_fifo_alloc(octx->sample_fmt, config->channels, config->frame_size);
@@ -198,9 +198,11 @@ int main(int argc, char **argv) {
 		}
 
 		int samples;
-		if ((samples = av_audio_fifo_read(enc->samples, &buf, dca->frame_size)) < 0) {
+		int16_t len;
+		unsigned char obuf[4000];
+		if ((samples = dca_encoder_emit(enc, &len, obuf, sizeof(obuf))) < 0) {
 			err = samples;
-			fprintf(stderr, "Couldn't read samples: %s\n", get_av_err_str(err));
+			fprintf(stderr, "Couldn't encode frame: %s\n", opus_strerror(err));
 			break;
 		}
 
@@ -208,20 +210,7 @@ int main(int argc, char **argv) {
 			break;
 		}
 
-		fprintf(stderr, "Read %d samples\n", samples);
-
-		// Dump PCM frames instead, for debugging
-		// fwrite(buf, 1, samples*dca->channels*sizeof(int16_t), stdout);
-
-		int16_t len;
-		unsigned char obuf[4000];
-		if ((len = opus_encode(opus, (opus_int16*)buf, config->frame_size, obuf, sizeof(obuf))) < 0) {
-			err = len;
-			fprintf(stderr, "Couldn't encode OPUS: %s\n", opus_strerror(err));
-			break;
-		}
-		fprintf(stderr, "OPUS Frame: %d\n", len);
-
+		fprintf(stderr, "%d samples -> %d byte\n", samples, len);
 		fwrite(&len, 1, sizeof(len), stdout);
 		fwrite(obuf, 1, len, stdout);
 	}

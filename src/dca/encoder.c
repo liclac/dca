@@ -14,6 +14,7 @@ dca_encoder_t* dca_encoder_new(dca_t *dca, enum AVSampleFormat in_sample_fmt, in
 		av_get_default_channel_layout(dca->channels), in_sample_fmt, in_sample_rate,
 		0, NULL
 	);
+	enc->opus = malloc(opus_encoder_get_size(dca->channels));
 	enc->samples = av_audio_fifo_alloc(AV_SAMPLE_FMT_S16, dca->channels, dca->frame_size);
 	enc->tmp_buf = NULL;
 	enc->tmp_buf_size = 0;
@@ -21,6 +22,11 @@ dca_encoder_t* dca_encoder_new(dca_t *dca, enum AVSampleFormat in_sample_fmt, in
 	if ((err = swr_init(enc->swr)) < 0) {
 		return NULL;
 	}
+
+	if ((err = opus_encoder_init(enc->opus, dca->sample_rate, dca->channels, dca->opus_mode)) != OPUS_OK) {
+		return NULL;
+	}
+	opus_encoder_ctl(enc->opus, OPUS_SET_BITRATE(dca->bit_rate));
 
 	return enc;
 }
@@ -56,6 +62,26 @@ int dca_encoder_feed(dca_encoder_t *enc, void *samples, int count) {
 
 int dca_encoder_feed_frame(dca_encoder_t *enc, AVFrame *frame) {
 	return dca_encoder_feed(enc, frame->extended_data[0], frame->nb_samples);
+}
+
+int dca_encoder_emit(dca_encoder_t *enc, int16_t *len, void *buf, size_t buf_len) {
+	if (av_audio_fifo_size(enc->samples) == 0) {
+		*len = 0;
+		return 0;
+	}
+
+	dca_encoder_reserve_samples(enc, enc->dca->frame_size);
+
+	int samples;
+	if ((samples = av_audio_fifo_read(enc->samples, &enc->tmp_buf, enc->dca->frame_size)) < 0) {
+		return samples;
+	}
+
+	if ((*len = opus_encode(enc->opus, (opus_int16*)enc->tmp_buf, enc->dca->frame_size, buf, buf_len)) < 0) {
+		return *len;
+	}
+
+	return samples;
 }
 
 void dca_encoder_reserve_samples(dca_encoder_t *enc, int count) {
