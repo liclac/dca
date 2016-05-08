@@ -101,6 +101,8 @@ int parse_args(config_t *config, int argc, char **argv) {
 		} else {
 			if (positionals == 0) {
 				config->infile = arg;
+			} else if (positionals == 1) {
+				config->outfile = arg;
 			} else {
 				return ERR_ARG_UNKNOWN;
 			}
